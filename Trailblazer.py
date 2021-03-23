@@ -1,3 +1,4 @@
+from threading import Event
 from types import LambdaType
 import pygame
 import math
@@ -104,10 +105,53 @@ def Astar(draw, grid, start, end):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-
+        
         current = pqueue.get()[1]
         tSet.remove(current)
         current.make_closed()
+        
+        if current == end:
+            while current.previous != None:     #Reconstruct the path using previous
+                current.make_path()
+                current= current.previous
+
+            end.make_end()
+            start.make_start()
+            return True
+
+        for neighbor in current.neighbors:
+            # time.sleep(0.01)
+            # pygame.display.update()
+            if not neighbor.make_closed():
+                temp_cost = cost[current] + 1
+                if temp_cost < cost[neighbor]:
+                    cost[neighbor] = temp_cost
+                    neighbor.previous = current
+                    if neighbor not in tSet:
+                        pqueue.put(((cost[neighbor] + heuristic(neighbor.get_pos(), end.get_pos())), neighbor))
+                        tSet.add(neighbor)
+                        neighbor.make_open()
+                        
+    return False
+
+# Dijkstra's Algorithm
+def dijkstra(draw, grid, start, end):
+    cost = {node: float("inf") for row in grid for node in row}
+    cost[start] = 0
+    pqueue = PriorityQueue()
+    pqueue.put((cost[start], start))
+    tSet = {start}
+
+    while not pqueue.empty():
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+        
+        current = pqueue.get()[1]
+        tSet.remove(current)
+        current.make_closed()
+        
         if current == end:
             while current.previous != None:     #Reconstruct the path using previous
                 current.make_path()
@@ -124,7 +168,7 @@ def Astar(draw, grid, start, end):
                     cost[neighbor] = temp_cost
                     neighbor.previous = current
                     if neighbor not in tSet:
-                        pqueue.put(((cost[neighbor] + heuristic(neighbor.get_pos(), end.get_pos())), neighbor))
+                        pqueue.put((cost[neighbor], neighbor))
                         tSet.add(neighbor)
                         neighbor.make_open()
                         
@@ -177,11 +221,11 @@ def main(win,width):
 
     start = None
     end = None
-
     run = True
 
     while run:
         draw(win,grid,ROWS,width)
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -218,6 +262,14 @@ def main(win,width):
                             node.update_neighbors(grid)
 
                     Astar(lambda: draw(win,grid,ROWS,width), grid, start, end)
+
+                if event.key == pygame.K_d and start and end:
+                    for row in grid:
+                        for node in row:
+                            node.update_neighbors(grid)
+
+                    dijkstra(lambda: draw(win,grid,ROWS,width), grid, start, end)
+
 
                 if event.key == pygame.K_c:
                     start = None
