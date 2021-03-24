@@ -1,9 +1,13 @@
+from queue import Queue
 from threading import Event
 from types import LambdaType
 import pygame
 import math
 from queue import PriorityQueue
 import time
+import sys
+
+sys.setrecursionlimit(10**6)
 
 WIDTH = 800
 WIN = pygame.display.set_mode((WIDTH,WIDTH))
@@ -91,8 +95,77 @@ class Node:
     def __lt__(self,other):
         return False
 
+# Depth - First - Search
+def dfs(grid, start, end):
+    temp = []
+    temp.append(start)
+    tset = {start}
+
+    while len(temp) != 0:
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                
+        current = temp.pop()
+        current.make_closed()
+
+        if current == end:
+            while current.previous != None:     #Reconstruct the path using previous
+                current.make_path()
+                current= current.previous
+            end.make_end()
+            start.make_start()
+            return True
+
+        for neighbor in current.neighbors:
+            if not neighbor.make_closed():
+                if neighbor not in tset:
+                    neighbor.make_open()
+                    temp.append(neighbor)
+                    neighbor.previous = current
+                    tset.add(neighbor)
+
+    return False
+
+# Breadth - First - Search
+def bfs(grid, start, end):
+    myq = Queue()
+    myq.put(start)
+    visited = {start}
+    while not myq.empty():
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+
+        current = myq.get()
+        current.make_closed()
+
+        if current == end:
+            while current.previous != None:     #Reconstruct the path using previous
+                current.make_path()
+                current= current.previous
+            end.make_end()
+            start.make_start()
+            return True
+
+        for neighbor in current.neighbors:
+            if not neighbor.make_closed():
+                if neighbor not in visited:
+                    neighbor.make_open()
+                    myq.put(neighbor)
+                    neighbor.previous = current
+                    visited.add(neighbor)
+
+    return False
+
+
+
+    
+
 # A* Algorithm 
-def Astar(draw, grid, start, end):
+def Astar(grid, start, end):
 
     cost = {node: float("inf") for row in grid for node in row}
     cost[start] = 0
@@ -261,14 +334,28 @@ def main(win,width):
                         for node in row:
                             node.update_neighbors(grid)
 
-                    Astar(lambda: draw(win,grid,ROWS,width), grid, start, end)
-
+                    Astar(grid, start, end)
+                    #lambda: draw(win,grid,ROWS,width), 
                 if event.key == pygame.K_d and start and end:
                     for row in grid:
                         for node in row:
                             node.update_neighbors(grid)
 
                     dijkstra(lambda: draw(win,grid,ROWS,width), grid, start, end)
+
+                if event.key == pygame.K_v and start and end:
+                    for row in grid:
+                        for node in row:
+                            node.update_neighbors(grid)
+
+                    dfs(grid, start, end)
+
+                if event.key == pygame.K_b and start and end:
+                    for row in grid:
+                        for node in row:
+                            node.update_neighbors(grid)
+
+                    bfs(grid, start, end)
 
 
                 if event.key == pygame.K_c:
